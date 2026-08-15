@@ -3,13 +3,13 @@ import { CalendarDays, Grid3X3, List, Plus } from 'lucide-react';
 import { ViewMode } from '../types';
 
 const navItems: Array<{ mode: ViewMode; label: string; icon: React.ComponentType<{ className?: string }>; targetId: string }> = [
+  { mode: 'day', label: 'Hoje', icon: CalendarDays, targetId: 'view-mode-day' },
   { mode: 'week', label: 'Semana', icon: Grid3X3, targetId: 'view-mode-week' },
-  { mode: 'day', label: 'Dia', icon: CalendarDays, targetId: 'view-mode-day' },
   { mode: 'list', label: 'Lista', icon: List, targetId: 'view-mode-list' },
 ];
 
 export const MobileBottomNav: React.FC = () => {
-  const [active, setActive] = useState<ViewMode>('week');
+  const [active, setActive] = useState<ViewMode>('day');
 
   useEffect(() => {
     const cleanups = navItems.map((item) => {
@@ -19,7 +19,16 @@ export const MobileBottomNav: React.FC = () => {
       node.addEventListener('click', handler);
       return () => node.removeEventListener('click', handler);
     });
-    return () => cleanups.forEach((cleanup) => cleanup());
+
+    // A versão mobile abre na visão diária.
+    const timer = window.setTimeout(() => {
+      if (window.innerWidth < 640) document.getElementById('view-mode-day')?.click();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+      cleanups.forEach((cleanup) => cleanup());
+    };
   }, []);
 
   const changeView = (item: (typeof navItems)[number]) => {
@@ -33,8 +42,11 @@ export const MobileBottomNav: React.FC = () => {
   };
 
   return (
-    <nav className="sm:hidden fixed inset-x-3 bottom-3 z-50 rounded-2xl border border-slate-200/90 dark:border-[#292934] bg-white/95 dark:bg-[#111118]/95 backdrop-blur-xl shadow-[0_12px_40px_rgba(15,23,42,0.24)] px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]" aria-label="Navegação móvel da agenda">
-      <div className="grid grid-cols-4 gap-1">
+    <nav
+      className="sm:hidden fixed inset-x-4 bottom-3 z-50 rounded-[1.15rem] border border-slate-200/80 dark:border-[#292934] bg-white/96 dark:bg-[#111118]/96 backdrop-blur-xl shadow-[0_10px_32px_rgba(15,23,42,0.18)] px-1.5 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]"
+      aria-label="Navegação móvel da agenda"
+    >
+      <div className="grid grid-cols-4 gap-0.5">
         {navItems.map((item) => {
           const Icon = item.icon;
           const selected = active === item.mode;
@@ -43,13 +55,13 @@ export const MobileBottomNav: React.FC = () => {
               key={item.mode}
               type="button"
               onClick={() => changeView(item)}
-              className={`flex flex-col items-center justify-center gap-1 rounded-xl py-2 text-[10px] font-semibold transition-all ${selected
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-[#1b1b24]'
+              className={`flex flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[9px] font-medium transition-all ${selected
+                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/8'
+                : 'text-slate-400 dark:text-slate-500 active:bg-slate-100 dark:active:bg-[#1b1b24]'
               }`}
               aria-current={selected ? 'page' : undefined}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-[18px] h-[18px]" />
               <span>{item.label}</span>
             </button>
           );
@@ -58,9 +70,9 @@ export const MobileBottomNav: React.FC = () => {
         <button
           type="button"
           onClick={createEvent}
-          className="flex flex-col items-center justify-center gap-1 rounded-xl py-2 text-[10px] font-bold bg-emerald-500 text-white shadow-sm active:scale-95 transition-transform"
+          className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 active:bg-emerald-500/10 transition-all"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-[18px] h-[18px]" />
           <span>Novo</span>
         </button>
       </div>
