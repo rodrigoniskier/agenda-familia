@@ -1,0 +1,6 @@
+{
+  "name": "Calendário Semanal Familiar",
+  "description": "Calendário semanal e sincronização Google Calendar da Família Sales-Barbosa (Rodrigo, Erika e Sophia) com lembretes automáticos e modo escuro.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
