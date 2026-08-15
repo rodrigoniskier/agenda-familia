@@ -51,12 +51,22 @@ export const DayView: React.FC<DayViewProps> = ({
   const dateObj = new Date(year, month - 1, day);
   const fullDayName = PT_DAYS_FULL[dateObj.getDay()];
 
+  const changeWeek = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      if (onPrevWeek) onPrevWeek();
+      else document.getElementById('btn-prev-week')?.click();
+      return;
+    }
+    if (onNextWeek) onNextWeek();
+    else document.getElementById('btn-next-week')?.click();
+  };
+
   const goPreviousDay = () => {
     if (selectedDayIndex > 0) {
       setSelectedDayIndex((previous) => previous - 1);
       return;
     }
-    onPrevWeek?.();
+    changeWeek('prev');
     setSelectedDayIndex(Math.max(weekDays.length - 1, 0));
   };
 
@@ -65,7 +75,7 @@ export const DayView: React.FC<DayViewProps> = ({
       setSelectedDayIndex((previous) => previous + 1);
       return;
     }
-    onNextWeek?.();
+    changeWeek('next');
     setSelectedDayIndex(0);
   };
 
