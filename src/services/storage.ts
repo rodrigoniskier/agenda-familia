@@ -1,6 +1,7 @@
 import { CalendarEvent, FamilyMember, ThemeMode } from '../types';
 import { INITIAL_MEMBERS } from '../constants';
 import { getSemester2026Events } from '../data/semester2026';
+import { getFamilyRoutines2026Events } from '../data/familyRoutines2026';
 
 const STORAGE_KEYS = {
   EVENTS: 'family_cal_events_v4',
@@ -8,7 +9,7 @@ const STORAGE_KEYS = {
   THEME: 'family_cal_theme_v2',
   NOTIFICATIONS_ENABLED: 'family_cal_notif_v2',
   GOOGLE_SYNC_TIME: 'family_cal_last_google_sync',
-  SEMESTER_2026_2_MIGRATION: 'family_cal_semester_2026_2_v1',
+  SEMESTER_2026_2_MIGRATION: 'family_cal_semester_2026_2_v2',
 };
 
 // Generate initial family events (empty by default for real user data)
@@ -25,7 +26,10 @@ function mergeSemester2026Events(existingEvents: CalendarEvent[]): CalendarEvent
     const alreadyImported = localStorage.getItem(STORAGE_KEYS.SEMESTER_2026_2_MIGRATION) === 'done';
     if (alreadyImported) return existingEvents;
 
-    const semesterEvents = getSemester2026Events();
+    const semesterEvents = [
+      ...getSemester2026Events(),
+      ...getFamilyRoutines2026Events(),
+    ];
     const existingIds = new Set(existingEvents.map((event) => event.id));
     const existingSignatures = new Set(existingEvents.map(eventSignature));
 
