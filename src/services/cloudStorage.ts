@@ -26,6 +26,7 @@ const familyDoc = doc(db, 'familyAgendas', FAMILY_ID);
 const eventsCollection = collection(familyDoc, 'events');
 const membersCollection = collection(familyDoc, 'members');
 const metaDoc = doc(familyDoc, 'meta', 'state');
+const STARTUP_TIMEOUT_MS = 6500;
 
 const LEGACY_KEYS = [
   'family_cal_events_v4',
@@ -63,6 +64,27 @@ function defaultAgendaEvents(): CalendarEvent[] {
   return [...scheduled, ...generateFreeSlots(scheduled)];
 }
 
+function mergeEventsWithoutDuplicates(...sources: CalendarEvent[][]): CalendarEvent[] {
+  const merged: CalendarEvent[] = [];
+  const ids = new Set<string>();
+  const signatures = new Set<string>();
+
+  for (const source of sources) {
+    for (const event of source) {
+      if (!event?.id) continue;
+      const signature = eventSignature(event);
+      if (ids.has(event.id) || signatures.has(signature)) continue;
+      ids.add(event.id);
+      signatures.add(signature);
+      merged.push(event);
+    }
+  }
+
+  return merged.sort((a, b) =>
+    `${a.date}T${a.startTime || '00:00'}`.localeCompare(`${b.date}T${b.startTime || '00:00'}`),
+  );
+}
+
 function readLegacyData(): LegacyData {
   if (typeof window === 'undefined') return { events: [], members: [] };
 
@@ -92,15 +114,33 @@ function readLegacyData(): LegacyData {
   return { events, members };
 }
 
+function recoveryEvents(): CalendarEvent[] {
+  const legacy = readLegacyData();
+  // Preserva qualquer alteração manual já existente e completa eventuais itens
+  // que ainda não haviam sido migrados pelas versões anteriores do app.
+  return mergeEventsWithoutDuplicates(legacy.events, defaultAgendaEvents());
+}
+
+function recoveryMembers(): FamilyMember[] {
+  const legacy = readLegacyData();
+  return legacy.members.length > 0 ? legacy.members : INITIAL_MEMBERS;
+}
+
 function clearLegacyData(): void {
   if (typeof window === 'undefined') return;
   for (const key of LEGACY_KEYS) {
     try {
       window.localStorage.removeItem(key);
     } catch {
-      // Migração já concluída; falha de limpeza não impede o uso da nuvem.
+      // A limpeza é apenas pós-migração. Falhar aqui não afeta a agenda em nuvem.
     }
   }
+}
+
+function timeoutAfter(ms: number, label: string): Promise<never> {
+  return new Promise((_, reject) => {
+    window.setTimeout(() => reject(new Error(`${label} excedeu ${ms} ms`)), ms);
+  });
 }
 
 async function ensureCloudIdentity(): Promise<void> {
@@ -109,9 +149,12 @@ async function ensureCloudIdentity(): Promise<void> {
   try {
     await signInAnonymously(auth);
   } catch (error: any) {
-    // Se autenticação anônima não estiver habilitada, ainda tentamos o Firestore.
-    // Isso permite projetos cujas regras atuais aceitem acesso sem autenticação.
-    console.warn('Autenticação anônima indisponível; tentando acesso direto ao Firestore.', error?.code || error);
+    // Se a autenticação anônima não estiver habilitada, ainda tentamos o Firestore.
+    // Isso mantém compatibilidade com regras que eventualmente permitam acesso direto.
+    console.warn(
+      'Autenticação anônima indisponível; tentando acesso direto ao Firestore.',
+      error?.code || error,
+    );
   }
 }
 
@@ -126,7 +169,7 @@ async function commitInChunks(
   }
 }
 
-export async function initializeCloudAgenda(): Promise<void> {
+async function bootstrapCloudAgenda(): Promise<void> {
   await ensureCloudIdentity();
 
   const [cloudEventsSnapshot, cloudMembersSnapshot] = await Promise.all([
@@ -141,7 +184,7 @@ export async function initializeCloudAgenda(): Promise<void> {
   );
 
   const seedEvents = cloudEventsSnapshot.empty ? defaultAgendaEvents() : [];
-  const candidateEvents = [...seedEvents, ...legacy.events];
+  const candidateEvents = [...legacy.events, ...seedEvents];
   const eventsToUpload: CalendarEvent[] = [];
   const seenIds = new Set(cloudEventIds);
   const seenSignatures = new Set(cloudEventSignatures);
@@ -175,26 +218,64 @@ export async function initializeCloudAgenda(): Promise<void> {
 
   if (operations.length > 0) await commitInChunks(operations);
 
-  await setDoc(metaDoc, {
-    initialized: true,
-    schemaVersion: 1,
-    lastBootstrapAt: Date.now(),
-  }, { merge: true });
+  await setDoc(
+    metaDoc,
+    {
+      initialized: true,
+      schemaVersion: 1,
+      lastBootstrapAt: Date.now(),
+    },
+    { merge: true },
+  );
 
-  // A partir daqui a nuvem é a fonte única de verdade.
+  // Só removemos a cópia antiga depois de confirmar leitura + escrita no Firestore.
   clearLegacyData();
+}
+
+export async function initializeCloudAgenda(): Promise<void> {
+  const bootstrap = bootstrapCloudAgenda();
+
+  try {
+    await Promise.race([
+      bootstrap,
+      timeoutAfter(STARTUP_TIMEOUT_MS, 'Inicialização do Firestore'),
+    ]);
+  } catch (error) {
+    // O app não pode ficar vazio esperando a rede. O bootstrap continua executando
+    // em segundo plano e os listeners assumem assim que o Firestore responder.
+    console.warn('Firestore ainda não ficou pronto; exibindo agenda de recuperação.', error);
+    void bootstrap.catch((backgroundError) => {
+      console.warn('Bootstrap do Firestore não foi concluído:', backgroundError);
+    });
+  }
 }
 
 export function subscribeCloudEvents(
   onChange: (events: CalendarEvent[]) => void,
   onError?: (error: Error) => void,
 ): () => void {
+  // Mostra a agenda imediatamente, sem depender da latência/configuração do Firebase.
+  const fallback = recoveryEvents();
+  onChange(fallback);
+
+  let receivedNonEmptyCloudSnapshot = false;
+
   return onSnapshot(
     eventsCollection,
     (snapshot) => {
+      if (snapshot.empty && !receivedNonEmptyCloudSnapshot) {
+        // Evita apagar visualmente a agenda enquanto um banco recém-criado ainda
+        // está recebendo o bootstrap inicial.
+        return;
+      }
+
       const events = snapshot.docs
         .map((item) => item.data() as CalendarEvent)
-        .sort((a, b) => `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`));
+        .sort((a, b) =>
+          `${a.date}T${a.startTime || '00:00'}`.localeCompare(`${b.date}T${b.startTime || '00:00'}`),
+        );
+
+      if (events.length > 0) receivedNonEmptyCloudSnapshot = true;
       onChange(events);
     },
     (error) => onError?.(error),
@@ -205,10 +286,16 @@ export function subscribeCloudMembers(
   onChange: (members: FamilyMember[]) => void,
   onError?: (error: Error) => void,
 ): () => void {
+  onChange(recoveryMembers());
+
+  let receivedNonEmptyCloudSnapshot = false;
+
   return onSnapshot(
     membersCollection,
     (snapshot) => {
       const members = snapshot.docs.map((item) => item.data() as FamilyMember);
+      if (members.length === 0 && !receivedNonEmptyCloudSnapshot) return;
+      if (members.length > 0) receivedNonEmptyCloudSnapshot = true;
       onChange(members.length > 0 ? members : INITIAL_MEMBERS);
     },
     (error) => onError?.(error),
