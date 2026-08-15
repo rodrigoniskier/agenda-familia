@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarDays, Grid3X3, List, Plus } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Grid3X3, List, Plus } from 'lucide-react';
 import { ViewMode } from '../types';
 
 const navItems: Array<{ mode: ViewMode; label: string; icon: React.ComponentType<{ className?: string }>; targetId: string }> = [
@@ -20,9 +20,11 @@ export const MobileBottomNav: React.FC = () => {
       return () => node.removeEventListener('click', handler);
     });
 
-    // A versão mobile abre na visão diária.
     const timer = window.setTimeout(() => {
-      if (window.innerWidth < 640) document.getElementById('view-mode-day')?.click();
+      if (window.innerWidth < 640) {
+        document.getElementById('btn-today')?.click();
+        document.getElementById('view-mode-day')?.click();
+      }
     }, 0);
 
     return () => {
@@ -33,6 +35,7 @@ export const MobileBottomNav: React.FC = () => {
 
   const changeView = (item: (typeof navItems)[number]) => {
     setActive(item.mode);
+    if (item.mode === 'day') document.getElementById('btn-today')?.click();
     document.getElementById(item.targetId)?.click();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -41,11 +44,40 @@ export const MobileBottomNav: React.FC = () => {
     document.getElementById('btn-mobile-add-event')?.click();
   };
 
+  const changeWeek = (direction: 'prev' | 'next') => {
+    document.getElementById(direction === 'prev' ? 'btn-prev-week' : 'btn-next-week')?.click();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <nav
       className="sm:hidden fixed inset-x-4 bottom-3 z-50 rounded-[1.15rem] border border-slate-200/80 dark:border-[#292934] bg-white/96 dark:bg-[#111118]/96 backdrop-blur-xl shadow-[0_10px_32px_rgba(15,23,42,0.18)] px-1.5 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]"
       aria-label="Navegação móvel da agenda"
     >
+      {active !== 'day' && (
+        <div className="grid grid-cols-[44px_1fr_44px] items-center mb-1 border-b border-slate-100 dark:border-[#24242e] pb-1">
+          <button
+            type="button"
+            onClick={() => changeWeek('prev')}
+            className="h-8 flex items-center justify-center text-slate-400 active:text-indigo-600"
+            aria-label="Semana anterior"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-center text-[10px] font-medium text-slate-400">
+            {active === 'week' ? 'Navegar semanas' : 'Mudar período'}
+          </span>
+          <button
+            type="button"
+            onClick={() => changeWeek('next')}
+            className="h-8 flex items-center justify-center text-slate-400 active:text-indigo-600"
+            aria-label="Próxima semana"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-4 gap-0.5">
         {navItems.map((item) => {
           const Icon = item.icon;
