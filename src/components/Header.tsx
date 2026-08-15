@@ -14,9 +14,9 @@ import {
   List,
   Grid3X3,
   CalendarDays,
-  Sparkles
 } from 'lucide-react';
 import { User } from 'firebase/auth';
+import { DailyCheckins } from './DailyCheckins';
 
 interface HeaderProps {
   currentWeekDays: WeekDay[];
@@ -62,83 +62,68 @@ export const Header: React.FC<HeaderProps> = ({
   const weekTitle = getWeekLabel(currentWeekDays);
 
   return (
-    <header className="sticky top-0 z-30 bg-white/80 dark:bg-[#0d0d12]/90 backdrop-blur-md border-b border-slate-200 dark:border-[#1f1f27] transition-colors">
-      <div className="max-w-[1600px] mx-auto px-3 sm:px-6 py-3 space-y-2.5">
-        {/* Top Row: App Title + Primary Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Logo & Title */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]">
+    <header className="sm:sticky sm:top-0 z-30 bg-white/95 dark:bg-[#0d0d12]/95 backdrop-blur-xl border-b border-slate-200 dark:border-[#1f1f27] transition-colors">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-6 py-2.5 sm:py-3 space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.35)] shrink-0">
               <CalendarIcon className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight truncate">
                   Família Sales-Barbosa
                 </h1>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                <span className="hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 whitespace-nowrap">
                   {pendingCount} {pendingCount === 1 ? 'pendente' : 'pendentes'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                Agenda Semanal & Sincronização em Tempo Real
+              <p className="hidden sm:block text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                Agenda familiar compartilhada
               </p>
             </div>
           </div>
 
-          {/* Action Tools */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Google Sync Button */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               id="btn-open-google-sync"
               onClick={onOpenGoogleSyncModal}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+              className={`p-2 rounded-xl border transition-all ${
                 googleUser && googleAccessToken
-                  ? 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.15)]'
-                  : 'bg-white dark:bg-[#16161e] border-slate-200 dark:border-[#23232e] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1f1f27]'
+                  ? 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400'
+                  : 'bg-white dark:bg-[#16161e] border-slate-200 dark:border-[#23232e] text-slate-600 dark:text-slate-300'
               }`}
-              title="Sincronizar com Google Calendar"
+              title="Google Calendar"
             >
-              <Cloud className="w-3.5 h-3.5 text-blue-500" />
-              <span className="hidden sm:inline">
-                {googleUser ? 'Google Conectado' : 'Google Calendar'}
-              </span>
+              <Cloud className="w-4 h-4" />
             </button>
 
-            {/* Share / WhatsApp Button */}
             <button
               type="button"
               id="btn-open-share"
               onClick={onOpenShareModal}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-[#16161e] border border-slate-200 dark:border-[#23232e] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1f1f27] transition-colors"
-              title="Compartilhar agenda da semana (WhatsApp / .ICS)"
+              className="p-2 rounded-xl border border-slate-200 dark:border-[#23232e] bg-white dark:bg-[#16161e] text-emerald-600 dark:text-emerald-400"
+              title="Compartilhar agenda"
             >
-              <Share2 className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="hidden sm:inline">Compartilhar</span>
+              <Share2 className="w-4 h-4" />
             </button>
 
-            {/* Dark Mode Toggle */}
             <button
               type="button"
               id="btn-toggle-theme"
               onClick={onToggleTheme}
-              className="p-2 rounded-xl border border-slate-200 dark:border-[#23232e] bg-white dark:bg-[#16161e] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1f1f27] transition-colors"
-              title={theme === 'dark' ? 'Mudar para modo claro' : 'Mudar para modo escuro'}
+              className="p-2 rounded-xl border border-slate-200 dark:border-[#23232e] bg-white dark:bg-[#16161e] text-slate-700 dark:text-slate-300"
+              title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
             >
-              {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-slate-600" />
-              )}
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            {/* Create Event Header Button (Visible on mobile/tablet) */}
             <button
               type="button"
               id="btn-create-event-header"
               onClick={onOpenNewEventModal}
-              className="lg:hidden flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)] transition-all"
+              className="hidden sm:flex lg:hidden items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-sm"
             >
               <Plus className="w-4 h-4" />
               <span>Novo</span>
@@ -146,142 +131,121 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Second Row: Week Navigation & Member Filters & View Mode */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-slate-200/60 dark:border-[#1f1f27]">
-          {/* Week Selector */}
-          <div className="flex items-center gap-1.5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-2 border-t border-slate-200/70 dark:border-[#1f1f27]">
+          <div className="flex items-center gap-1.5 min-w-0 sm:shrink-0">
             <button
               type="button"
               id="btn-prev-week"
               onClick={onPrevWeek}
-              className="p-1.5 rounded-xl border border-slate-200 dark:border-[#23232e] bg-white dark:bg-[#16161e] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1f1f27] transition-colors"
+              className="p-2 rounded-xl border border-slate-200 dark:border-[#23232e] bg-white dark:bg-[#16161e] text-slate-600 dark:text-slate-300"
               title="Semana anterior"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-
             <button
               type="button"
               id="btn-today"
               onClick={onToday}
-              className="px-2.5 py-1 rounded-xl border border-slate-200 dark:border-[#23232e] bg-white dark:bg-[#16161e] text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1f1f27] transition-colors"
+              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-[#23232e] bg-white dark:bg-[#16161e] text-xs font-bold text-slate-700 dark:text-slate-300"
             >
               Hoje
             </button>
-
             <button
               type="button"
               id="btn-next-week"
               onClick={onNextWeek}
-              className="p-1.5 rounded-xl border border-slate-200 dark:border-[#23232e] bg-white dark:bg-[#16161e] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1f1f27] transition-colors"
+              className="p-2 rounded-xl border border-slate-200 dark:border-[#23232e] bg-white dark:bg-[#16161e] text-slate-600 dark:text-slate-300"
               title="Próxima semana"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
-
-            <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-[#f1f1f5] ml-1.5">
+            <span className="ml-1 text-xs sm:text-sm font-bold text-slate-800 dark:text-white truncate flex-1 sm:flex-none text-right sm:text-left">
               {weekTitle}
             </span>
           </div>
 
-          {/* Right Section: Mobile Member Filter Strip + View Switcher */}
-          <div className="flex items-center gap-2 flex-wrap ml-auto">
-            {/* Member Filter Chips for mobile / tablet */}
-            <div className="lg:hidden flex items-center gap-1 overflow-x-auto pb-0.5 max-w-[280px] sm:max-w-none">
+          <div className="flex items-center gap-1 overflow-x-auto pb-0.5 sm:ml-auto min-w-0">
+            <button
+              type="button"
+              id="filter-member-all"
+              onClick={() => onSelectMember('all')}
+              className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                selectedMemberId === 'all'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-100 dark:bg-[#16161e] text-slate-700 dark:text-slate-300'
+              }`}
+            >
+              <span>👨‍👩‍👧‍👦</span>
+              <span>Todos</span>
+            </button>
+
+            {members.map((member) => (
               <button
+                key={member.id}
                 type="button"
-                id="filter-member-all"
-                onClick={() => onSelectMember('all')}
-                className={`flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-medium transition-all ${
-                  selectedMemberId === 'all'
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-[#16161e] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#1f1f27]'
+                id={`filter-member-${member.id}`}
+                onClick={() => onSelectMember(member.id)}
+                className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  selectedMemberId === member.id
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-100 dark:bg-[#16161e] text-slate-700 dark:text-slate-300'
                 }`}
               >
-                <span>👨‍👩‍👧‍👦</span>
-                <span>Todos</span>
+                <span>{member.avatar}</span>
+                <span>{member.name}</span>
               </button>
+            ))}
 
-              {members.map(m => (
-                <button
-                  key={m.id}
-                  type="button"
-                  id={`filter-member-${m.id}`}
-                  onClick={() => onSelectMember(m.id)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-medium transition-all ${
-                    selectedMemberId === m.id
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'bg-slate-100 dark:bg-[#16161e] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#1f1f27]'
-                  }`}
-                  title={`${m.name} (${m.role})`}
-                >
-                  <span>{m.avatar}</span>
-                  <span className="hidden md:inline">{m.name}</span>
-                </button>
-              ))}
+            <button
+              type="button"
+              id="btn-open-members-modal"
+              onClick={onOpenMembersModal}
+              className="shrink-0 p-2 rounded-xl text-slate-400 hover:text-indigo-600 bg-slate-100 dark:bg-[#16161e]"
+              title="Gerenciar membros"
+            >
+              <Users className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
-              <button
-                type="button"
-                id="btn-open-members-modal"
-                onClick={onOpenMembersModal}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-[#16161e] transition-colors"
-                title="Gerenciar membros da família"
-              >
-                <Users className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* View Mode Switcher */}
-            <div className="flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-[#16161e] border border-slate-200 dark:border-[#23232e]">
-              <button
-                type="button"
-                id="view-mode-week"
-                onClick={() => onChangeViewMode('week')}
-                className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
-                  viewMode === 'week'
-                    ? 'bg-white dark:bg-[#0d0d12] text-indigo-600 dark:text-indigo-400 shadow-xs border border-slate-200/50 dark:border-[#1f1f27]'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-                title="Visualização semanal"
-              >
-                <Grid3X3 className="w-3.5 h-3.5" />
-                <span className="text-[11px] hidden sm:inline">Semana</span>
-              </button>
-
-              <button
-                type="button"
-                id="view-mode-day"
-                onClick={() => onChangeViewMode('day')}
-                className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
-                  viewMode === 'day'
-                    ? 'bg-white dark:bg-[#0d0d12] text-indigo-600 dark:text-indigo-400 shadow-xs border border-slate-200/50 dark:border-[#1f1f27]'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-                title="Visualização diária"
-              >
-                <CalendarDays className="w-3.5 h-3.5" />
-                <span className="text-[11px] hidden sm:inline">Dia</span>
-              </button>
-
-              <button
-                type="button"
-                id="view-mode-list"
-                onClick={() => onChangeViewMode('list')}
-                className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
-                  viewMode === 'list'
-                    ? 'bg-white dark:bg-[#0d0d12] text-indigo-600 dark:text-indigo-400 shadow-xs border border-slate-200/50 dark:border-[#1f1f27]'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-                title="Visualização em lista"
-              >
-                <List className="w-3.5 h-3.5" />
-                <span className="text-[11px] hidden sm:inline">Lista</span>
-              </button>
-            </div>
+          <div className="hidden sm:flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-[#16161e] border border-slate-200 dark:border-[#23232e] shrink-0">
+            <button
+              type="button"
+              id="view-mode-week"
+              onClick={() => onChangeViewMode('week')}
+              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                viewMode === 'week' ? 'bg-white dark:bg-[#0d0d12] text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              <Grid3X3 className="w-3.5 h-3.5" />
+              <span>Semana</span>
+            </button>
+            <button
+              type="button"
+              id="view-mode-day"
+              onClick={() => onChangeViewMode('day')}
+              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                viewMode === 'day' ? 'bg-white dark:bg-[#0d0d12] text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              <span>Dia</span>
+            </button>
+            <button
+              type="button"
+              id="view-mode-list"
+              onClick={() => onChangeViewMode('list')}
+              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                viewMode === 'list' ? 'bg-white dark:bg-[#0d0d12] text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>Lista</span>
+            </button>
           </div>
         </div>
+
+        <DailyCheckins members={members} />
       </div>
     </header>
   );
 };
-
