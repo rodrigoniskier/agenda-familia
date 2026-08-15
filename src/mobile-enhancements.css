@@ -1,0 +1,40 @@
+@media (max-width: 639px) {
+  html {
+    scroll-padding-bottom: 6rem;
+  }
+
+  body {
+    padding-bottom: 5.75rem;
+  }
+
+  /* The bottom navigation owns the primary mobile create action. */
+  #btn-mobile-add-event {
+    display: none !important;
+  }
+
+  /* Weekly view becomes a compact vertical agenda instead of seven tall panels. */
+  [id^='day-column-'] {
+    min-height: 0 !important;
+    border-radius: 1rem !important;
+  }
+
+  [id^='day-column-'] > div:nth-child(2) {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  [id^='day-column-'] > div:first-child {
+    padding-top: 0.65rem !important;
+    padding-bottom: 0.65rem !important;
+  }
+
+  /* Leave breathing room above the persistent mobile navigation. */
+  footer {
+    padding-bottom: 6.5rem !important;
+  }
+
+  button,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
