@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CalendarEvent, FamilyMember, WeekDay } from '../types';
 import { EventCard } from './EventCard';
 import { PT_DAYS_FULL, sortEventsByTime, formatDateToISO } from '../utils/dateUtils';
@@ -13,6 +13,8 @@ interface DayViewProps {
   onDeleteEvent: (eventId: string) => void;
   onToggleComplete: (eventId: string) => void;
   onAddEventOnDay: (dateString: string) => void;
+  onPrevWeek?: () => void;
+  onNextWeek?: () => void;
 }
 
 export const DayView: React.FC<DayViewProps> = ({
@@ -24,10 +26,16 @@ export const DayView: React.FC<DayViewProps> = ({
   onDeleteEvent,
   onToggleComplete,
   onAddEventOnDay,
+  onPrevWeek,
+  onNextWeek,
 }) => {
   const todayStr = formatDateToISO(new Date());
   const foundIndex = weekDays.findIndex((day) => day.dateString === todayStr);
   const [selectedDayIndex, setSelectedDayIndex] = useState(foundIndex >= 0 ? foundIndex : 0);
+
+  useEffect(() => {
+    setSelectedDayIndex((current) => Math.min(current, Math.max(weekDays.length - 1, 0)));
+  }, [weekDays]);
 
   const currentDay = weekDays[selectedDayIndex] || weekDays[0];
   if (!currentDay) return null;
@@ -43,15 +51,32 @@ export const DayView: React.FC<DayViewProps> = ({
   const dateObj = new Date(year, month - 1, day);
   const fullDayName = PT_DAYS_FULL[dateObj.getDay()];
 
+  const goPreviousDay = () => {
+    if (selectedDayIndex > 0) {
+      setSelectedDayIndex((previous) => previous - 1);
+      return;
+    }
+    onPrevWeek?.();
+    setSelectedDayIndex(Math.max(weekDays.length - 1, 0));
+  };
+
+  const goNextDay = () => {
+    if (selectedDayIndex < weekDays.length - 1) {
+      setSelectedDayIndex((previous) => previous + 1);
+      return;
+    }
+    onNextWeek?.();
+    setSelectedDayIndex(0);
+  };
+
   return (
     <div id="day-view" className="w-full space-y-3 sm:space-y-4">
       <div id="day-selector" className="flex items-center justify-between p-1.5 sm:p-2 rounded-2xl bg-white/80 dark:bg-[#0d0d12]/90 border border-slate-200 dark:border-[#1f1f27]">
         <button
           type="button"
-          onClick={() => setSelectedDayIndex((previous) => Math.max(0, previous - 1))}
-          disabled={selectedDayIndex === 0}
-          className="p-2 rounded-xl text-slate-500 dark:text-slate-400 disabled:opacity-20"
-          aria-label="Dia anterior"
+          onClick={goPreviousDay}
+          className="p-2 rounded-xl text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-[#16161e]"
+          aria-label={selectedDayIndex === 0 ? 'Semana anterior' : 'Dia anterior'}
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -78,10 +103,9 @@ export const DayView: React.FC<DayViewProps> = ({
 
         <button
           type="button"
-          onClick={() => setSelectedDayIndex((previous) => Math.min(weekDays.length - 1, previous + 1))}
-          disabled={selectedDayIndex === weekDays.length - 1}
-          className="p-2 rounded-xl text-slate-500 dark:text-slate-400 disabled:opacity-20"
-          aria-label="Próximo dia"
+          onClick={goNextDay}
+          className="p-2 rounded-xl text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-[#16161e]"
+          aria-label={selectedDayIndex === weekDays.length - 1 ? 'Próxima semana' : 'Próximo dia'}
         >
           <ChevronRight className="w-5 h-5" />
         </button>
