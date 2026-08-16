@@ -2,40 +2,21 @@
 
 @layer base {
   :root {
-    --bg-main: #f8fafc;
-    --card-main: #ffffff;
-    --sidebar-main: #f1f5f9;
-    --border-main: #e2e8f0;
+    color-scheme: light;
   }
 
-  .dark {
-    --bg-main: #070709;
-    --card-main: #16161e;
-    --sidebar-main: #0d0d12;
-    --border-main: #1f1f27;
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    background: #ffffff;
   }
 
   body {
-    @apply antialiased selection:bg-indigo-500 selection:text-white bg-slate-50 dark:bg-[#070709] text-slate-900 dark:text-[#e0e0e6];
+    @apply antialiased bg-white text-slate-900;
   }
 }
 
-/* Immersive background glow */
-.immersive-bg-radial {
-  background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #070709 70%);
-}
-
-.immersive-card {
-  background-color: #16161e;
-  border-color: #23232e;
-}
-
-.immersive-sidebar {
-  background-color: #0d0d12;
-  border-color: #1f1f27;
-}
-
-/* Minimalist glowing scrollbars */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -46,10 +27,9 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300/60 dark:bg-[#1f1f27] rounded-full;
+  @apply bg-slate-200 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-400 dark:bg-indigo-600/60;
+  @apply bg-slate-300;
 }
-
