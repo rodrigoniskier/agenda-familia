@@ -1,0 +1,19 @@
+{
+  "name": "Agenda Família",
+  "short_name": "Agenda",
+  "description": "Agenda compartilhada da família Sales-Barbosa",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
