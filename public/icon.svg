@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Agenda Família">
+  <rect width="512" height="512" fill="#2563eb"/>
+  <rect x="96" y="112" width="320" height="300" rx="52" fill="#ffffff"/>
+  <rect x="96" y="112" width="320" height="86" rx="52" fill="#ffffff"/>
+  <rect x="96" y="164" width="320" height="34" fill="#ffffff"/>
+  <rect x="156" y="78" width="30" height="82" rx="15" fill="#ffffff"/>
+  <rect x="326" y="78" width="30" height="82" rx="15" fill="#ffffff"/>
+  <rect x="132" y="216" width="248" height="8" rx="4" fill="#dbeafe"/>
+  <circle cx="176" cy="294" r="24" fill="#2563eb"/>
+  <circle cx="256" cy="294" r="24" fill="#2563eb"/>
+  <circle cx="336" cy="294" r="24" fill="#2563eb"/>
+  <rect x="158" y="350" width="196" height="18" rx="9" fill="#dbeafe"/>
+</svg>
