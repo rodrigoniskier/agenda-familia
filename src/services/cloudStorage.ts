@@ -22,6 +22,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const FAMILY_ID = 'familia-niskier';
+const SOPHIA_ID = 'm_sophia';
 const familyDoc = doc(db, 'familyAgendas', FAMILY_ID);
 const eventsCollection = collection(familyDoc, 'events');
 const membersCollection = collection(familyDoc, 'members');
@@ -54,6 +55,10 @@ function cleanForFirestore<T extends Record<string, any>>(value: T): T {
 
 function eventSignature(event: CalendarEvent): string {
   return [event.title, event.date, event.startTime, event.endTime, event.memberId].join('|');
+}
+
+function isFreeEvent(event: CalendarEvent): boolean {
+  return event.title?.trim().toLowerCase() === 'livre';
 }
 
 function defaultAgendaEvents(): CalendarEvent[] {
@@ -116,8 +121,6 @@ function readLegacyData(): LegacyData {
 
 function recoveryEvents(): CalendarEvent[] {
   const legacy = readLegacyData();
-  // Preserva qualquer alteração manual já existente e completa eventuais itens
-  // que ainda não haviam sido migrados pelas versões anteriores do app.
   return mergeEventsWithoutDuplicates(legacy.events, defaultAgendaEvents());
 }
 
@@ -149,8 +152,6 @@ async function ensureCloudIdentity(): Promise<void> {
   try {
     await signInAnonymously(auth);
   } catch (error: any) {
-    // Se a autenticação anônima não estiver habilitada, ainda tentamos o Firestore.
-    // Isso mantém compatibilidade com regras que eventualmente permitam acesso direto.
     console.warn(
       'Autenticação anônima indisponível; tentando acesso direto ao Firestore.',
       error?.code || error,
@@ -178,13 +179,23 @@ async function bootstrapCloudAgenda(): Promise<void> {
   ]);
 
   const legacy = readLegacyData();
+  const cloudEvents = cloudEventsSnapshot.docs.map((item) => item.data() as CalendarEvent);
   const cloudEventIds = new Set(cloudEventsSnapshot.docs.map((item) => item.id));
-  const cloudEventSignatures = new Set(
-    cloudEventsSnapshot.docs.map((item) => eventSignature(item.data() as CalendarEvent)),
+  const cloudEventSignatures = new Set(cloudEvents.map(eventSignature));
+
+  // Compromissos recorrentes da Sophia devem ser garantidos mesmo quando o
+  // Firestore já tiver sido inicializado por uma versão anterior do aplicativo.
+  const sophiaCanonicalEvents = getFamilyRoutines2026Events().filter(
+    (event) => event.memberId === SOPHIA_ID,
   );
 
   const seedEvents = cloudEventsSnapshot.empty ? defaultAgendaEvents() : [];
-  const candidateEvents = [...legacy.events, ...seedEvents];
+  const candidateEvents = [
+    ...legacy.events,
+    ...seedEvents,
+    ...sophiaCanonicalEvents,
+  ].filter((event) => !(event.memberId === SOPHIA_ID && isFreeEvent(event)));
+
   const eventsToUpload: CalendarEvent[] = [];
   const seenIds = new Set(cloudEventIds);
   const seenSignatures = new Set(cloudEventSignatures);
@@ -216,19 +227,45 @@ async function bootstrapCloudAgenda(): Promise<void> {
     });
   }
 
+  // Remove apenas os placeholders “Livre” da Sophia e os recria com base nos
+  // compromissos efetivos. Qualquer “Livre” que tenha sido transformado pelo
+  // usuário em compromisso real deixa de satisfazer isFreeEvent e é preservado.
+  for (const item of cloudEventsSnapshot.docs) {
+    const event = item.data() as CalendarEvent;
+    if (event.memberId === SOPHIA_ID && isFreeEvent(event)) {
+      operations.push((batch) => batch.delete(item.ref));
+    }
+  }
+
+  const effectiveNonFreeEvents = mergeEventsWithoutDuplicates(
+    cloudEvents.filter((event) => !isFreeEvent(event)),
+    eventsToUpload.filter((event) => !isFreeEvent(event)),
+    sophiaCanonicalEvents,
+  );
+
+  const freshSophiaFreeSlots = generateFreeSlots(effectiveNonFreeEvents).filter(
+    (event) => event.memberId === SOPHIA_ID,
+  );
+
+  for (const event of freshSophiaFreeSlots) {
+    operations.push((batch) => {
+      batch.set(doc(eventsCollection, event.id), cleanForFirestore(event), { merge: true });
+    });
+  }
+
   if (operations.length > 0) await commitInChunks(operations);
 
   await setDoc(
     metaDoc,
     {
       initialized: true,
-      schemaVersion: 1,
+      schemaVersion: 2,
+      sophiaRoutinesVersion: 2,
       lastBootstrapAt: Date.now(),
     },
     { merge: true },
   );
 
-  // Só removemos a cópia antiga depois de confirmar leitura + escrita no Firestore.
   clearLegacyData();
 }
 
@@ -241,8 +278,6 @@ export async function initializeCloudAgenda(): Promise<void> {
       timeoutAfter(STARTUP_TIMEOUT_MS, 'Inicialização do Firestore'),
     ]);
   } catch (error) {
-    // O app não pode ficar vazio esperando a rede. O bootstrap continua executando
-    // em segundo plano e os listeners assumem assim que o Firestore responder.
     console.warn('Firestore ainda não ficou pronto; exibindo agenda de recuperação.', error);
     void bootstrap.catch((backgroundError) => {
       console.warn('Bootstrap do Firestore não foi concluído:', backgroundError);
@@ -254,7 +289,6 @@ export function subscribeCloudEvents(
   onChange: (events: CalendarEvent[]) => void,
   onError?: (error: Error) => void,
 ): () => void {
-  // Mostra a agenda imediatamente, sem depender da latência/configuração do Firebase.
   const fallback = recoveryEvents();
   onChange(fallback);
 
@@ -263,11 +297,7 @@ export function subscribeCloudEvents(
   return onSnapshot(
     eventsCollection,
     (snapshot) => {
-      if (snapshot.empty && !receivedNonEmptyCloudSnapshot) {
-        // Evita apagar visualmente a agenda enquanto um banco recém-criado ainda
-        // está recebendo o bootstrap inicial.
-        return;
-      }
+      if (snapshot.empty && !receivedNonEmptyCloudSnapshot) return;
 
       const events = snapshot.docs
         .map((item) => item.data() as CalendarEvent)
